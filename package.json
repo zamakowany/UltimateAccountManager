@@ -1,0 +1,95 @@
+{
+  "name": "ultimate-account-manager",
+  "version": "1.0.3",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "electron-forge start",
+    "startTrace": "electron --trace-warnings .",
+    "package": "electron-forge package",
+    "make": "electron-forge make",
+    "build": "electron-builder",
+    "publish": "electron-builder --publish always"
+  },
+  "keywords": [],
+  "author": "Zamakowany",
+  "license": "UNLICENSED",
+  "description": "UAM",
+  "build": {
+    "appId": "pl.zamakowany.uam",
+    "productName": "Ultimate Account Manager",
+    "files": [
+      "index.html",
+      "preload.js",
+      "main.js",
+      "renderer/**/*",
+      "node_modules/**/*"
+    ],
+    "extraResources": [
+      "src/assets"
+    ],
+    "extraFiles": [
+      "src/assets"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "zamakowany",
+        "repo": "UltimateAccountManager"
+      }
+    ],
+    "dmg": {
+      "contents": [
+        {
+          "x": 410,
+          "y": 150,
+          "type": "link",
+          "path": "/Applications"
+        },
+        {
+          "x": 130,
+          "y": 150,
+          "type": "file"
+        }
+      ]
+    },
+    "linux": {
+      "target": [
+        "deb",
+        "rpm"
+      ]
+    },
+    "win": {
+      "target": [
+        "squirrel",
+        "zip"
+      ],
+      "icon": "https://api.zamakowany.pl/public/iconUam.ico"
+    },
+    "squirrelWindows": {
+      "iconUrl": "https://api.zamakowany.pl/public/iconUam.ico"
+    }
+  },
+  "devDependencies": {
+    "@electron-forge/cli": "^7.5.0",
+    "@electron-forge/maker-deb": "^7.5.0",
+    "@electron-forge/maker-rpm": "^7.5.0",
+    "@electron-forge/maker-squirrel": "^7.5.0",
+    "@electron-forge/maker-zip": "^7.5.0",
+    "@electron-forge/plugin-auto-unpack-natives": "^7.5.0",
+    "@electron-forge/plugin-fuses": "^7.5.0",
+    "@electron/fuses": "^1.8.0",
+    "electron": "^33.0.1",
+    "electron-builder": "^25.1.8"
+  },
+  "dependencies": {
+    "@electron/remote": "^2.1.2",
+    "electron-main-fetch": "^2.0.0",
+    "electron-squirrel-startup": "^1.0.1",
+    "node-fetch": "^3.3.2",
+    "electron-updater": "^4.6.5"
+  }
+}
