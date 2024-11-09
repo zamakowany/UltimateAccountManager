@@ -8,6 +8,7 @@ const squirrelStartup = require('electron-squirrel-startup');
 autoUpdater.logger = log;
 autoUpdater.logger.transports.file.level = 'info';
 log.info('App starting...');
+log.info('App version:', app.getVersion());
 
 let template = [];
 if (process.platform === 'darwin') {
@@ -45,8 +46,6 @@ function createWindow() {
       contextIsolation: false,
     }
   });
-
-  mainWindow.webContents.openDevTools();
 
   session.defaultSession.clearCache().then(() => {
     log.info("Cache cleared");

@@ -1,4 +1,9 @@
-node_modules
+# Node modules
+node_modules/
+
+# Environment variables
 .env
-dist
+
+# Build output
+dist/
 *.exe
