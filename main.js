@@ -1,22 +1,40 @@
-const { app, BrowserWindow, ipcMain, session } = require('electron');
+const { app, BrowserWindow, ipcMain, session, Menu } = require('electron');
 const path = require('path');
+const log = require('electron-log');
 const { autoUpdater } = require('electron-updater');
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 const squirrelStartup = require('electron-squirrel-startup');
 
-if (squirrelStartup) {
-  app.quit();
+autoUpdater.logger = log;
+autoUpdater.logger.transports.file.level = 'info';
+log.info('App starting...');
+
+let template = [];
+if (process.platform === 'darwin') {
+  // OS X
+  const name = app.getName();
+  template.unshift({
+    label: name,
+    submenu: [
+      {
+        label: 'About ' + name,
+        role: 'about'
+      },
+      {
+        label: 'Quit',
+        accelerator: 'Command+Q',
+        click() { app.quit(); }
+      },
+    ]
+  });
 }
 
 let mainWindow;
 
-let blacklist = ['localhost', '127.0.0.1'];
-let dcVersion;
-let browserUserAgent;
-const response = fetch('https://api.zamakowany.pl/getDcInfo').then(res => res.json()).then(data => {
-  dcVersion = data.dcVersion;
-  browserUserAgent = data.browserUserAgent;
-});
+function sendStatusToWindow(text) {
+  log.info(text);
+  mainWindow.webContents.send('message', text);
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -28,10 +46,10 @@ function createWindow() {
     }
   });
 
-  mainWindow.webContents.openDevTools(); // Otwórz narzędzia deweloperskie
+  mainWindow.webContents.openDevTools();
 
   session.defaultSession.clearCache().then(() => {
-    console.log("Cache cleared");
+    log.info("Cache cleared");
   });
 
   session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
@@ -47,24 +65,44 @@ function createWindow() {
       }
     });
   });
-  mainWindow.loadURL(`file://${__dirname}/index.html`).then(() => {
-    console.log('index.html loaded successfully');
+
+  mainWindow.loadFile(path.join(__dirname, 'index.html')).then(() => {
+    log.info('index.html loaded successfully');
   }).catch((err) => {
-    console.error('Failed to load index.html:', err);
+    log.error('Failed to load index.html:', err);
   });
 
-  // Sprawdź aktualizacje po utworzeniu okna
   autoUpdater.checkForUpdatesAndNotify();
 }
 
-app.whenReady().then(() => {
-  createWindow();
+autoUpdater.on('checking-for-update', () => {
+  sendStatusToWindow('Checking for update...');
+});
+autoUpdater.on('update-available', (info) => {
+  sendStatusToWindow('Update available.');
+});
+autoUpdater.on('update-not-available', (info) => {
+  sendStatusToWindow('Update not available.');
+});
+autoUpdater.on('error', (err) => {
+  sendStatusToWindow('Error in auto-updater. ' + err);
+});
+autoUpdater.on('download-progress', (progressObj) => {
+  let log_message = "Download speed: " + progressObj.bytesPerSecond;
+  log_message = log_message + ' - Downloaded ' + progressObj.percent + '%';
+  log_message = log_message + ' (' + progressObj.transferred + "/" + progressObj.total + ')';
+  sendStatusToWindow(log_message);
+});
+autoUpdater.on('update-downloaded', (info) => {
+  sendStatusToWindow('Update downloaded');
+});
 
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
-    }
-  });
+app.on('ready', function() {
+  // Create the Menu
+  const menu = Menu.buildFromTemplate(template);
+  Menu.setApplicationMenu(menu);
+
+  createWindow();
 });
 
 app.on('window-all-closed', () => {
@@ -73,10 +111,31 @@ app.on('window-all-closed', () => {
   }
 });
 
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow();
+  }
+});
+
+if (squirrelStartup) {
+  app.quit();
+}
+
+let blacklist = ['localhost', '127.0.0.1'];
+let dcVersion;
+let browserUserAgent;
+let proxyUrl;
+
+const response = fetch('https://api.zamakowany.pl/getDcInfo').then(res => res.json()).then(data => {
+  dcVersion = data.dcVersion;
+  browserUserAgent = data.browserUserAgent;
+  proxyUrl = data.proxyUrl;
+});
+
 ipcMain.on('open-proxy-window', (event, { n, proxyUser, proxyPass, dcToken }) => {
-  console.log('New proxy window:', n, proxyUser);
+  log.info('New proxy window:', n, proxyUser);
   const newSession = session.fromPartition(`persist:proxy-session-${n}`);
-  newSession.setProxy({ proxyRules: 'p.webshare.io:80' })
+  newSession.setProxy({ proxyRules: proxyUrl })
     .then(() => {
       const win = new BrowserWindow({
         width: 800,
@@ -100,7 +159,7 @@ ipcMain.on('open-proxy-window', (event, { n, proxyUser, proxyPass, dcToken }) =>
             delete headers[key];
           }
         }
-        if (removedHeaders.length > 0) { console.log("CSP headers removed:", removedHeaders); };
+        if (removedHeaders.length > 0) { log.info("CSP headers removed:", removedHeaders); };
 
         callback({
           cancel: false,
@@ -111,12 +170,12 @@ ipcMain.on('open-proxy-window', (event, { n, proxyUser, proxyPass, dcToken }) =>
       win.webContents.on('login', (event, details, authInfo, callback) => {
         const username = proxyUser + n;
         callback(username, proxyPass);
-        console.log('Proxy login:', username);
+        log.info('Proxy login:', username);
       });
 
       win.webContents.session.webRequest.onBeforeRequest((details, callback) => {
         if (blacklist.some(domain => details.url.includes(domain))) {
-          console.log('Blocked:', details.url);
+          log.info('Blocked:', details.url);
           callback({ cancel: true });
         } else {
           callback({ cancel: false });
@@ -124,16 +183,16 @@ ipcMain.on('open-proxy-window', (event, { n, proxyUser, proxyPass, dcToken }) =>
       });
 
       win.loadURL("https://discord.com/").then(() => {
-        console.log('Main page loaded');
+        log.info('Main page loaded');
         setTimeout(() => {
           win.webContents.send('localStorage-clear');
           setTimeout(() => {
             win.webContents.send('localStorage-set', 'token', dcToken);
-            console.log('Token set');
+            log.info('Token set');
 
             setTimeout(() => {
               win.loadURL("https://discord.com/login");
-              console.log('/login loaded');
+              log.info('/login loaded');
             }, 1000);
           }, 500);
         }, 1000);
@@ -175,6 +234,6 @@ ipcMain.on('open-proxy-window', (event, { n, proxyUser, proxyPass, dcToken }) =>
       });
     })
     .catch((error) => {
-      console.error("Proxy set error:", error);
+      log.error("Proxy set error:", error);
     });
 });
