@@ -58,7 +58,11 @@ loginButton.addEventListener('click', function () {
       accList = accList.data;
       accList.forEach(element => {
         console.log(element); 
-        list.innerHTML += `<li>${element.Nickname} | Proxy: ${element.proxyN} <button onclick="openNewProxyWindow(${element.proxyN}, '${element.Token}')">Zaloguj</button></li>`;
+        list.innerHTML += `<tr>
+          <td data-th="Nickname">${element.Nickname}</td>
+          <td data-th="Proxy number">${element.proxyN}</td>
+          <td data-th="Start"><button class="button" onclick="openNewProxyWindow(${element.proxyN}, '${element.Token}')">Login</button></td>
+        </tr>`;
       });
     })();
   }

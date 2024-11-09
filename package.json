@@ -4,6 +4,7 @@
   "main": "main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "build-css": "node-sass scss -o renderer",
     "start": "electron-forge start",
     "startTrace": "electron --trace-warnings .",
     "package": "electron-forge package",
@@ -82,7 +83,9 @@
     "@electron-forge/plugin-fuses": "^7.5.0",
     "@electron/fuses": "^1.8.0",
     "electron": "^33.0.1",
-    "electron-builder": "^25.1.8"
+    "electron-builder": "^25.1.8",
+    "node-sass": "^9.0.0",
+    "sass": "^1.80.6"
   },
   "dependencies": {
     "@electron/remote": "^2.1.2",
