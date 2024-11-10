@@ -7,6 +7,7 @@ const { ipcRenderer } = require('electron');
 let token
 let proxyUser;
 let proxyPass;
+let proxyUrl;
 
 
 async function getProxyPass() {
@@ -52,6 +53,7 @@ loginButton.addEventListener('click', function () {
       proxyCred = await getProxyPass();
       proxyUser = proxyCred.data.proxyUser;
       proxyPass = proxyCred.data.proxyPass;
+      proxyUrl = proxyCred.data.proxyUrl;
       document.getElementById('login-container').style.display = 'none';
       document.getElementById('logged-in-message').style.display = 'block';
       let accList = await getAccList();
@@ -69,12 +71,12 @@ loginButton.addEventListener('click', function () {
 });
 
 function openNewProxyWindow(n, dcToken) {
-  if (!proxyUser || !proxyPass || !dcToken) {
+  if (!proxyUser || !proxyPass || !dcToken || !proxyUrl) {
     alert('Brak danych proxy');
     return;
   }
   dcToken = `"${dcToken}"`;
-  ipcRenderer.send('open-proxy-window', { n, proxyUser, proxyPass, dcToken });
+  ipcRenderer.send('open-proxy-window', { n, proxyUser, proxyPass, proxyUrl, dcToken });
 }
 // document.getElementById('openWindow').addEventListener('click', () => {
 //   const url = document.getElementById('url').value;

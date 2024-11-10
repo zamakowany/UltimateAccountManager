@@ -128,11 +128,10 @@ let proxyUrl;
 const response = fetch('https://api.zamakowany.pl/getDcInfo').then(res => res.json()).then(data => {
   dcVersion = data.dcVersion;
   browserUserAgent = data.browserUserAgent;
-  proxyUrl = data.proxyUrl;
 });
 
-ipcMain.on('open-proxy-window', (event, { n, proxyUser, proxyPass, dcToken }) => {
-  log.info('New proxy window:', n, proxyUser);
+ipcMain.on('open-proxy-window', (event, { n, proxyUser, proxyPass, proxyUrl, dcToken }) => {
+  log.info('New proxy window:', n, proxyUser, proxyUrl);
   const newSession = session.fromPartition(`persist:proxy-session-${n}`);
   newSession.setProxy({ proxyRules: proxyUrl })
     .then(() => {
@@ -158,7 +157,6 @@ ipcMain.on('open-proxy-window', (event, { n, proxyUser, proxyPass, dcToken }) =>
             delete headers[key];
           }
         }
-        if (removedHeaders.length > 0) { log.info("CSP headers removed:", removedHeaders); };
 
         callback({
           cancel: false,
@@ -168,8 +166,8 @@ ipcMain.on('open-proxy-window', (event, { n, proxyUser, proxyPass, dcToken }) =>
 
       win.webContents.on('login', (event, details, authInfo, callback) => {
         const username = proxyUser + n;
-        callback(username, proxyPass);
         log.info('Proxy login:', username);
+        callback(username, proxyPass);
       });
 
       win.webContents.session.webRequest.onBeforeRequest((details, callback) => {
@@ -181,14 +179,13 @@ ipcMain.on('open-proxy-window', (event, { n, proxyUser, proxyPass, dcToken }) =>
         }
       });
 
-      win.loadURL("https://discord.com/").then(() => {
+      win.loadURL("https://discord.com").then(() => {
         log.info('Main page loaded');
         setTimeout(() => {
           win.webContents.send('localStorage-clear');
           setTimeout(() => {
             win.webContents.send('localStorage-set', 'token', dcToken);
             log.info('Token set');
-
             setTimeout(() => {
               win.loadURL("https://discord.com/login");
               log.info('/login loaded');
